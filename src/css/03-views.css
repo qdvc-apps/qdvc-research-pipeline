@@ -171,13 +171,39 @@
   height: 16px;
   border-radius: 8px;
   background: var(--teal);
-  opacity: .85;
+  opacity: .9;
 }
-.tl-seg.current { background: repeating-linear-gradient(45deg, var(--amber), var(--amber) 6px, #c99a3f 6px, #c99a3f 12px); }
+/* review-cycle roles */
+.tl-seg.role-review  { background: var(--review-c); }
+.tl-seg.role-authors { background: var(--authors-c); }
+/* trailing "current" bar: striped to signal it is still open/ongoing */
+.tl-seg.current { background: repeating-linear-gradient(45deg, var(--neutral-c), var(--neutral-c) 6px, #9aa0aa 6px, #9aa0aa 12px); }
+.tl-seg.current.role-review { background: repeating-linear-gradient(45deg, var(--review-c), var(--review-c) 6px, var(--review-c2) 6px, var(--review-c2) 12px); }
+.tl-seg.current.role-authors { background: repeating-linear-gradient(45deg, var(--authors-c), var(--authors-c) 6px, var(--authors-c2) 6px, var(--authors-c2) 12px); }
 .tl-seg .dur {
   position: absolute; top: -17px; left: 50%; transform: translateX(-50%);
   font-size: 10px; color: var(--ink-soft); font-family: var(--mono); white-space: nowrap;
 }
+.tl-seg .rlabel {
+  position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+  font-size: 10px; font-weight: 700; letter-spacing: .03em;
+  color: #fff; font-family: var(--mono); white-space: nowrap; pointer-events: none;
+}
+
+/* legend */
+.tl-legend {
+  display: flex; align-items: center; gap: 18px; flex-wrap: wrap;
+  padding: 10px 16px; margin-bottom: 14px;
+  background: var(--panel); border: 1px solid var(--rule); border-radius: var(--radius);
+  font-size: 12px; color: var(--ink-soft);
+}
+.tl-legend .lg { display: inline-flex; align-items: center; gap: 7px; }
+.tl-legend .sw { width: 26px; height: 12px; border-radius: 6px; display: inline-block; }
+.tl-legend .sw.review  { background: var(--review-c); }
+.tl-legend .sw.authors { background: var(--authors-c); }
+.tl-legend .sw.current { background: repeating-linear-gradient(45deg, var(--neutral-c), var(--neutral-c) 5px, #9aa0aa 5px, #9aa0aa 10px); }
+.tl-legend .sw.other   { background: var(--teal); }
+.tl-legend .lg b { color: var(--ink); font-weight: 600; }
 .tl-node {
   position: absolute; top: 18px;
   width: 12px; height: 12px; border-radius: 50%;

@@ -21,6 +21,13 @@
   --st-review: #6b4d8a;
   --st-published: #2f7d4f;
 
+  /* timeline review-cycle palette */
+  --review-c:  #6b4d8a;  /* under review */
+  --review-c2: #8064a5;
+  --authors-c: #c47f2a;  /* with authors (revising) */
+  --authors-c2:#d99a4e;
+  --neutral-c: #b7bcc4;  /* ongoing, non-review */
+
   --serif: Charter, "Iowan Old Style", Georgia, "Times New Roman", serif;
   --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
   --mono: "SF Mono", "JetBrains Mono", "Fira Mono", ui-monospace, Menlo, Consolas, monospace;

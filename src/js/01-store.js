@@ -58,6 +58,15 @@ function isDecisionType(v) { return EVENT_TYPE_MAP[v] && EVENT_TYPE_MAP[v].detai
 function isVolIssueType(v) { return EVENT_TYPE_MAP[v] && EVENT_TYPE_MAP[v].detail === 'volissue'; }
 function isTerminalType(v) { return !!(EVENT_TYPE_MAP[v] && EVENT_TYPE_MAP[v].terminal); }
 
+/* Review-cycle classification. A submission or resubmission sends the paper into
+   review; a decision ends a review round; a resubmission returns it to review
+   after the authors revise. */
+const SUBMIT_TYPES   = new Set(['conf_submitted', 'conf_resubmitted', 'jrn_submitted', 'jrn_resubmitted']);
+const RESUBMIT_TYPES = new Set(['conf_resubmitted', 'jrn_resubmitted']);
+function isSubmissionType(v)  { return SUBMIT_TYPES.has(v); }
+function isResubmitType(v)    { return RESUBMIT_TYPES.has(v); }
+function isDecisionEventType(v) { return isDecisionType(v); }
+
 const ID_RE = /^[0-9]{2}[A-Z]{2}$/;
 function isValidId(id) { return ID_RE.test(id || ''); }
 

@@ -29,6 +29,13 @@
   --st-review: #6b4d8a;
   --st-published: #2f7d4f;
 
+  /* timeline review-cycle palette */
+  --review-c:  #6b4d8a;  /* under review */
+  --review-c2: #8064a5;
+  --authors-c: #c47f2a;  /* with authors (revising) */
+  --authors-c2:#d99a4e;
+  --neutral-c: #b7bcc4;  /* ongoing, non-review */
+
   --serif: Charter, "Iowan Old Style", Georgia, "Times New Roman", serif;
   --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
   --mono: "SF Mono", "JetBrains Mono", "Fira Mono", ui-monospace, Menlo, Consolas, monospace;
@@ -488,13 +495,39 @@ tbody tr:hover { background: #fbf9f4; }
   height: 16px;
   border-radius: 8px;
   background: var(--teal);
-  opacity: .85;
+  opacity: .9;
 }
-.tl-seg.current { background: repeating-linear-gradient(45deg, var(--amber), var(--amber) 6px, #c99a3f 6px, #c99a3f 12px); }
+/* review-cycle roles */
+.tl-seg.role-review  { background: var(--review-c); }
+.tl-seg.role-authors { background: var(--authors-c); }
+/* trailing "current" bar: striped to signal it is still open/ongoing */
+.tl-seg.current { background: repeating-linear-gradient(45deg, var(--neutral-c), var(--neutral-c) 6px, #9aa0aa 6px, #9aa0aa 12px); }
+.tl-seg.current.role-review { background: repeating-linear-gradient(45deg, var(--review-c), var(--review-c) 6px, var(--review-c2) 6px, var(--review-c2) 12px); }
+.tl-seg.current.role-authors { background: repeating-linear-gradient(45deg, var(--authors-c), var(--authors-c) 6px, var(--authors-c2) 6px, var(--authors-c2) 12px); }
 .tl-seg .dur {
   position: absolute; top: -17px; left: 50%; transform: translateX(-50%);
   font-size: 10px; color: var(--ink-soft); font-family: var(--mono); white-space: nowrap;
 }
+.tl-seg .rlabel {
+  position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+  font-size: 10px; font-weight: 700; letter-spacing: .03em;
+  color: #fff; font-family: var(--mono); white-space: nowrap; pointer-events: none;
+}
+
+/* legend */
+.tl-legend {
+  display: flex; align-items: center; gap: 18px; flex-wrap: wrap;
+  padding: 10px 16px; margin-bottom: 14px;
+  background: var(--panel); border: 1px solid var(--rule); border-radius: var(--radius);
+  font-size: 12px; color: var(--ink-soft);
+}
+.tl-legend .lg { display: inline-flex; align-items: center; gap: 7px; }
+.tl-legend .sw { width: 26px; height: 12px; border-radius: 6px; display: inline-block; }
+.tl-legend .sw.review  { background: var(--review-c); }
+.tl-legend .sw.authors { background: var(--authors-c); }
+.tl-legend .sw.current { background: repeating-linear-gradient(45deg, var(--neutral-c), var(--neutral-c) 5px, #9aa0aa 5px, #9aa0aa 10px); }
+.tl-legend .sw.other   { background: var(--teal); }
+.tl-legend .lg b { color: var(--ink); font-weight: 600; }
 .tl-node {
   position: absolute; top: 18px;
   width: 12px; height: 12px; border-radius: 50%;
@@ -656,6 +689,15 @@ function eventTypeLabel(v) {
 function isDecisionType(v) { return EVENT_TYPE_MAP[v] && EVENT_TYPE_MAP[v].detail === 'decision'; }
 function isVolIssueType(v) { return EVENT_TYPE_MAP[v] && EVENT_TYPE_MAP[v].detail === 'volissue'; }
 function isTerminalType(v) { return !!(EVENT_TYPE_MAP[v] && EVENT_TYPE_MAP[v].terminal); }
+
+/* Review-cycle classification. A submission or resubmission sends the paper into
+   review; a decision ends a review round; a resubmission returns it to review
+   after the authors revise. */
+const SUBMIT_TYPES   = new Set(['conf_submitted', 'conf_resubmitted', 'jrn_submitted', 'jrn_resubmitted']);
+const RESUBMIT_TYPES = new Set(['conf_resubmitted', 'jrn_resubmitted']);
+function isSubmissionType(v)  { return SUBMIT_TYPES.has(v); }
+function isResubmitType(v)    { return RESUBMIT_TYPES.has(v); }
+function isDecisionEventType(v) { return isDecisionType(v); }
 
 const ID_RE = /^[0-9]{2}[A-Z]{2}$/;
 function isValidId(id) { return ID_RE.test(id || ''); }
@@ -1341,25 +1383,45 @@ const TimelineView = {
   },
 
   /* Segments = consecutive dated events -> bars; plus a trailing "current" bar to today
-     if the paper is not in a terminal state. Returns [{start:Date,end:Date,from,to,current,decision,terminal}] */
+     if the paper is not in a terminal state. Each segment is classified into a
+     review-cycle role:
+       - 'review'  : submission/resubmission -> decision   (labelled R0, R1, ...)
+       - 'authors' : decision -> resubmission              ("with authors")
+       - null      : outside the review cycle (pre-submission, post-decision, misc)
+     R-numbering restarts per paper, so a merged conference+journal lane starts
+     fresh at R0 for the journal venue. */
   paperSegments(p, ownerId) {
     const evs = sortedEvents(p).filter(e => parseDate(e.date));
     const segs = [];
+    let rIndex = 0;
     for (let i = 0; i < evs.length - 1; i++) {
+      const a = evs[i], b = evs[i + 1];
+      let role = null, label = '';
+      if (isSubmissionType(a.type) && isDecisionEventType(b.type)) {
+        role = 'review';
+        label = 'R' + rIndex;
+        rIndex++;
+      } else if (isDecisionEventType(a.type) && isResubmitType(b.type)) {
+        role = 'authors';
+      }
       segs.push({
-        start: parseDate(evs[i].date), end: parseDate(evs[i + 1].date),
-        from: evs[i], to: evs[i + 1], owner: ownerId, current: false,
+        start: parseDate(a.date), end: parseDate(b.date),
+        from: a, to: b, owner: ownerId, current: false, role, label,
       });
     }
     // node-only markers even if a single event
     if (evs.length === 1) {
-      segs.push({ start: parseDate(evs[0].date), end: parseDate(evs[0].date), from: evs[0], to: evs[0], owner: ownerId, current: false, point: true });
+      segs.push({ start: parseDate(evs[0].date), end: parseDate(evs[0].date), from: evs[0], to: evs[0], owner: ownerId, current: false, point: true, role: null });
     }
     // trailing current bar
     const last = evs[evs.length - 1];
     const terminalReached = evs.some(e => isTerminalType(e.type)) || p.status === 'published';
     if (last && !terminalReached) {
-      segs.push({ start: parseDate(last.date), end: new Date(todayISO() + 'T00:00:00'), from: last, to: null, owner: ownerId, current: true });
+      // if the paper is currently awaiting a decision (last event was a submission
+      // or resubmission), the ongoing period is itself an open review round.
+      let role = null, label = '';
+      if (isSubmissionType(last.type)) { role = 'review'; label = 'R' + rIndex; }
+      segs.push({ start: parseDate(last.date), end: new Date(todayISO() + 'T00:00:00'), from: last, to: null, owner: ownerId, current: true, role, label });
     }
     return segs;
   },
@@ -1386,6 +1448,13 @@ const TimelineView = {
         el('p', {}, 'Add dates to publication events to position them on the timeline.')));
       return;
     }
+
+    // legend
+    host.appendChild(el('div', { class: 'tl-legend' },
+      el('span', { class: 'lg' }, el('span', { class: 'sw review' }), el('b', {}, 'Under review'), ' (R0, R1, R2…)'),
+      el('span', { class: 'lg' }, el('span', { class: 'sw authors' }), el('b', {}, 'With authors'), ' (revising)'),
+      el('span', { class: 'lg' }, el('span', { class: 'sw other' }), el('b', {}, 'Other')),
+      el('span', { class: 'lg' }, el('span', { class: 'sw current' }), el('b', {}, 'Ongoing'), ' (to today)')));
 
     // domain
     let min = Infinity, max = -Infinity;
@@ -1436,9 +1505,13 @@ const TimelineView = {
       if (!s.point) {
         const x1 = xOf(s.start), x2 = xOf(s.end);
         const w = Math.max(2, x2 - x1);
-        const seg = el('div', { class: 'tl-seg' + (s.current ? ' current' : ''), style: `left:${x1}px;width:${w}px` });
+        const roleCls = s.role === 'review' ? ' role-review' : s.role === 'authors' ? ' role-authors' : '';
+        const seg = el('div', { class: 'tl-seg' + (s.current ? ' current' : '') + roleCls, style: `left:${x1}px;width:${w}px` });
         const days = daysBetween(s.start, s.end);
+        // duration label above the bar
         if (w > 34 || s.current) seg.appendChild(el('div', { class: 'dur' }, s.current ? humanDuration(days) + ' · now' : humanDuration(days)));
+        // R-round label sits on the bar itself
+        if (s.label && w > 22) seg.appendChild(el('div', { class: 'rlabel' }, s.label));
         track.appendChild(seg);
       }
       // start node

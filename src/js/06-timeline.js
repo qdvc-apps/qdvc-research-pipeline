@@ -96,25 +96,45 @@ const TimelineView = {
   },
 
   /* Segments = consecutive dated events -> bars; plus a trailing "current" bar to today
-     if the paper is not in a terminal state. Returns [{start:Date,end:Date,from,to,current,decision,terminal}] */
+     if the paper is not in a terminal state. Each segment is classified into a
+     review-cycle role:
+       - 'review'  : submission/resubmission -> decision   (labelled R0, R1, ...)
+       - 'authors' : decision -> resubmission              ("with authors")
+       - null      : outside the review cycle (pre-submission, post-decision, misc)
+     R-numbering restarts per paper, so a merged conference+journal lane starts
+     fresh at R0 for the journal venue. */
   paperSegments(p, ownerId) {
     const evs = sortedEvents(p).filter(e => parseDate(e.date));
     const segs = [];
+    let rIndex = 0;
     for (let i = 0; i < evs.length - 1; i++) {
+      const a = evs[i], b = evs[i + 1];
+      let role = null, label = '';
+      if (isSubmissionType(a.type) && isDecisionEventType(b.type)) {
+        role = 'review';
+        label = 'R' + rIndex;
+        rIndex++;
+      } else if (isDecisionEventType(a.type) && isResubmitType(b.type)) {
+        role = 'authors';
+      }
       segs.push({
-        start: parseDate(evs[i].date), end: parseDate(evs[i + 1].date),
-        from: evs[i], to: evs[i + 1], owner: ownerId, current: false,
+        start: parseDate(a.date), end: parseDate(b.date),
+        from: a, to: b, owner: ownerId, current: false, role, label,
       });
     }
     // node-only markers even if a single event
     if (evs.length === 1) {
-      segs.push({ start: parseDate(evs[0].date), end: parseDate(evs[0].date), from: evs[0], to: evs[0], owner: ownerId, current: false, point: true });
+      segs.push({ start: parseDate(evs[0].date), end: parseDate(evs[0].date), from: evs[0], to: evs[0], owner: ownerId, current: false, point: true, role: null });
     }
     // trailing current bar
     const last = evs[evs.length - 1];
     const terminalReached = evs.some(e => isTerminalType(e.type)) || p.status === 'published';
     if (last && !terminalReached) {
-      segs.push({ start: parseDate(last.date), end: new Date(todayISO() + 'T00:00:00'), from: last, to: null, owner: ownerId, current: true });
+      // if the paper is currently awaiting a decision (last event was a submission
+      // or resubmission), the ongoing period is itself an open review round.
+      let role = null, label = '';
+      if (isSubmissionType(last.type)) { role = 'review'; label = 'R' + rIndex; }
+      segs.push({ start: parseDate(last.date), end: new Date(todayISO() + 'T00:00:00'), from: last, to: null, owner: ownerId, current: true, role, label });
     }
     return segs;
   },
@@ -141,6 +161,13 @@ const TimelineView = {
         el('p', {}, 'Add dates to publication events to position them on the timeline.')));
       return;
     }
+
+    // legend
+    host.appendChild(el('div', { class: 'tl-legend' },
+      el('span', { class: 'lg' }, el('span', { class: 'sw review' }), el('b', {}, 'Under review'), ' (R0, R1, R2…)'),
+      el('span', { class: 'lg' }, el('span', { class: 'sw authors' }), el('b', {}, 'With authors'), ' (revising)'),
+      el('span', { class: 'lg' }, el('span', { class: 'sw other' }), el('b', {}, 'Other')),
+      el('span', { class: 'lg' }, el('span', { class: 'sw current' }), el('b', {}, 'Ongoing'), ' (to today)')));
 
     // domain
     let min = Infinity, max = -Infinity;
@@ -191,9 +218,13 @@ const TimelineView = {
       if (!s.point) {
         const x1 = xOf(s.start), x2 = xOf(s.end);
         const w = Math.max(2, x2 - x1);
-        const seg = el('div', { class: 'tl-seg' + (s.current ? ' current' : ''), style: `left:${x1}px;width:${w}px` });
+        const roleCls = s.role === 'review' ? ' role-review' : s.role === 'authors' ? ' role-authors' : '';
+        const seg = el('div', { class: 'tl-seg' + (s.current ? ' current' : '') + roleCls, style: `left:${x1}px;width:${w}px` });
         const days = daysBetween(s.start, s.end);
+        // duration label above the bar
         if (w > 34 || s.current) seg.appendChild(el('div', { class: 'dur' }, s.current ? humanDuration(days) + ' · now' : humanDuration(days)));
+        // R-round label sits on the bar itself
+        if (s.label && w > 22) seg.appendChild(el('div', { class: 'rlabel' }, s.label));
         track.appendChild(seg);
       }
       // start node
