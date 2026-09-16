@@ -32,7 +32,7 @@ const BoardView = {
         e.preventDefault();
         col.classList.remove('drop-target');
         if (!this.dragKey) return;
-        const p = Store.get(this.dragKey);
+        const p = Store.getByKey(this.dragKey);
         if (p && p.status !== s.value) {
           p.status = s.value;
           Store.upsert(p);

@@ -5,7 +5,7 @@
 let editing = null; // working copy
 
 function openPaperModal(key) {
-  const source = key ? Store.get(key) : null;
+  const source = key ? Store.getByKey(key) : null;
   editing = source ? JSON.parse(JSON.stringify(source)) : blankPaper();
   if (!editing._key) editing._key = uid();
   renderModal(!source);
@@ -69,7 +69,7 @@ function renderModal(isNew) {
     body,
     el('div', { class: 'modal-foot' },
       el('div', {}, isNew ? '' : el('button', { class: 'btn btn-danger', type: 'button',
-        onclick: () => { const p = Store.get(editing._key); closeModal(); if (p) confirmDelete(p); } }, 'Delete')),
+        onclick: () => { const p = Store.getByKey(editing._key); closeModal(); if (p) confirmDelete(p); } }, 'Delete')),
       el('div', { class: 'right' },
         el('button', { class: 'btn', type: 'button', onclick: closeModal }, 'Cancel'),
         el('button', { class: 'btn btn-primary', type: 'button', onclick: savePaper }, 'Save paper'))));

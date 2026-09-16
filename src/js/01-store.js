@@ -96,6 +96,7 @@ const Store = {
   },
 
   get(id) { return this.papers.find(p => p.id === id) || null; },
+  getByKey(key) { return this.papers.find(p => p._key === key) || null; },
 
   idExists(id, exceptKey) {
     return this.papers.some(p => p.id === id && p._key !== exceptKey);

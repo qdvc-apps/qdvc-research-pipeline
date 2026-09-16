@@ -127,12 +127,28 @@ button, input, select, textarea { font-family: inherit; font-size: inherit; colo
 }
 .nav-item.active .k { color: #fff; }
 
-.rail-foot { margin-top: auto; display: flex; flex-direction: column; gap: 8px; }
+.rail-foot { margin-top: auto; display: flex; flex-direction: column; gap: 6px; }
 .rail-foot .count {
   font-size: 12px;
   color: var(--ink-faint);
-  padding: 0 12px;
+  padding: 0 12px 4px;
 }
+.rail-btn {
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: 8px 12px;
+  border: none;
+  border-radius: var(--radius);
+  background: none;
+  color: #c9cdd6;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background .12s, color .12s;
+}
+.rail-btn:hover { background: rgba(255,255,255,.08); color: #fff; }
+.rail-btn:active { background: rgba(255,255,255,.12); }
 
 /* ---------- Main ---------- */
 .main { padding: 0; overflow: hidden; }
@@ -523,8 +539,8 @@ tbody tr:hover { background: #fbf9f4; }
     </nav>
     <div class="rail-foot">
       <div class="count" id="railCount"></div>
-      <button class="btn btn-sm btn-ghost" id="btnExport" style="color:#c9cdd6">Export JSON</button>
-      <button class="btn btn-sm btn-ghost" id="btnImport" style="color:#c9cdd6">Import JSON</button>
+      <button class="rail-btn" id="btnExport">Export JSON</button>
+      <button class="rail-btn" id="btnImport">Import JSON</button>
       <input type="file" id="importFile" accept="application/json,.json" hidden>
     </div>
   </aside>
@@ -679,6 +695,7 @@ const Store = {
   },
 
   get(id) { return this.papers.find(p => p.id === id) || null; },
+  getByKey(key) { return this.papers.find(p => p._key === key) || null; },
 
   idExists(id, exceptKey) {
     return this.papers.some(p => p.id === id && p._key !== exceptKey);
@@ -969,7 +986,7 @@ function confirmDelete(p) {
 let editing = null; // working copy
 
 function openPaperModal(key) {
-  const source = key ? Store.get(key) : null;
+  const source = key ? Store.getByKey(key) : null;
   editing = source ? JSON.parse(JSON.stringify(source)) : blankPaper();
   if (!editing._key) editing._key = uid();
   renderModal(!source);
@@ -1033,7 +1050,7 @@ function renderModal(isNew) {
     body,
     el('div', { class: 'modal-foot' },
       el('div', {}, isNew ? '' : el('button', { class: 'btn btn-danger', type: 'button',
-        onclick: () => { const p = Store.get(editing._key); closeModal(); if (p) confirmDelete(p); } }, 'Delete')),
+        onclick: () => { const p = Store.getByKey(editing._key); closeModal(); if (p) confirmDelete(p); } }, 'Delete')),
       el('div', { class: 'right' },
         el('button', { class: 'btn', type: 'button', onclick: closeModal }, 'Cancel'),
         el('button', { class: 'btn btn-primary', type: 'button', onclick: savePaper }, 'Save paper'))));
@@ -1187,7 +1204,7 @@ const BoardView = {
         e.preventDefault();
         col.classList.remove('drop-target');
         if (!this.dragKey) return;
-        const p = Store.get(this.dragKey);
+        const p = Store.getByKey(this.dragKey);
         if (p && p.status !== s.value) {
           p.status = s.value;
           Store.upsert(p);
