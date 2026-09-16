@@ -14,6 +14,7 @@ const App = {
     $('#btnNew').addEventListener('click', () => openPaperModal(null));
     $('#btnNew2').addEventListener('click', () => openPaperModal(null));
     $('#btnExport').addEventListener('click', exportJSON);
+    $('#btnCalendar').addEventListener('click', openCalendarModal);
     $('#btnImport').addEventListener('click', () => $('#importFile').click());
     $('#importFile').addEventListener('change', e => {
       const file = e.target.files[0];

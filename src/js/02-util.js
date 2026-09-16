@@ -79,6 +79,19 @@ function sortedEvents(paper) {
   });
 }
 
+/* Dated events only, sorted ascending. */
+function datedEvents(paper) {
+  return sortedEvents(paper).filter(e => parseDate(e.date));
+}
+/* A paper counts as having events if it has at least one dated event. */
+function hasEvents(paper) { return datedEvents(paper).length > 0; }
+/* [firstDate, lastDate] as timestamps, or null if no dated events. */
+function eventBounds(paper) {
+  const evs = datedEvents(paper);
+  if (!evs.length) return null;
+  return [+parseDate(evs[0].date), +parseDate(evs[evs.length - 1].date)];
+}
+
 /* ---------- Export / Import ---------- */
 function exportJSON() {
   const blob = new Blob([JSON.stringify(Store.serialize(), null, 2)], { type: 'application/json' });
@@ -99,9 +112,17 @@ function importJSONText(text) {
   if (!Array.isArray(papers)) { toast('No papers found in that file.', true); return; }
   // fresh keys to avoid collisions with current session
   papers.forEach(p => { p._key = uid(); });
-  Store.replaceAll(papers);
+  const calendar = (!Array.isArray(data) && Array.isArray(data.calendar)) ? data.calendar : [];
+  calendar.forEach(pd => { pd._key = uid(); });
+  const settings = (!Array.isArray(data)) ? data.settings : null;
+  // imported visibleKeys referenced the old session's keys; drop them so the
+  // timeline defaults to showing all papers that have events.
+  if (settings && settings.timeline) settings.timeline.visibleKeys = null;
+  Store.replaceAll({ papers, calendar, settings });
+  TimelineView.syncFromSettings();
   App.renderAll();
-  toast('Imported ' + papers.length + ' paper' + (papers.length === 1 ? '' : 's'));
+  const cn = calendar.length;
+  toast('Imported ' + papers.length + ' paper' + (papers.length === 1 ? '' : 's') + (cn ? ' and ' + cn + ' calendar period' + (cn === 1 ? '' : 's') : ''));
 }
 
 function statusBadge(value) {

@@ -70,11 +70,45 @@ function isDecisionEventType(v) { return isDecisionType(v); }
 const ID_RE = /^[0-9]{2}[A-Z]{2}$/;
 function isValidId(id) { return ID_RE.test(id || ''); }
 
+/* Academic-calendar workload levels. Negative = more research time (relaxed),
+   positive = less (busy). Weights sum additively across overlapping periods. */
+const WORKLOADS = [
+  { value: -3, label: 'Most relaxed' },
+  { value: -2, label: 'More relaxed' },
+  { value: -1, label: 'Somewhat relaxed' },
+  { value: 0,  label: 'Neutral' },
+  { value: 1,  label: 'Busy' },
+  { value: 2,  label: 'Busier' },
+  { value: 3,  label: 'Busiest' },
+];
+const WORKLOAD_MAP = Object.fromEntries(WORKLOADS.map(w => [w.value, w]));
+
+/* Timeline sort options. */
+const TL_SORTS = [
+  { value: 'id_early', label: 'Paper ID (earliest)' },
+  { value: 'id_late',  label: 'Paper ID (latest)' },
+  { value: 'first_ev', label: 'First event recorded' },
+  { value: 'last_ev',  label: 'Last event recorded' },
+];
+
+function defaultSettings() {
+  return {
+    timeline: {
+      visibleKeys: null,   // null = all papers with events; else array of _keys
+      mergeLinked: false,
+      sortBy: 'id_early',
+      sortDir: 1,          // 1 asc, -1 desc
+    },
+  };
+}
+
 function uid() { return 'e' + Math.random().toString(36).slice(2, 9); }
 
 /* ---------- Store ---------- */
 const Store = {
   papers: [],
+  calendar: [],
+  settings: defaultSettings(),
 
   load() {
     try {
@@ -82,14 +116,21 @@ const Store = {
       if (raw) {
         const data = JSON.parse(raw);
         this.papers = Array.isArray(data.papers) ? data.papers : [];
+        this.calendar = Array.isArray(data.calendar) ? data.calendar : [];
+        this.settings = mergeSettings(data.settings);
       } else {
         this.papers = [];
+        this.calendar = [];
+        this.settings = defaultSettings();
       }
     } catch (e) {
       console.error('Load failed', e);
       this.papers = [];
+      this.calendar = [];
+      this.settings = defaultSettings();
     }
     this.papers.forEach(normalizePaper);
+    this.calendar.forEach(normalizePeriod);
   },
 
   persist() {
@@ -101,7 +142,7 @@ const Store = {
   },
 
   serialize() {
-    return { schema: SCHEMA, exportedAt: new Date().toISOString(), papers: this.papers };
+    return { schema: SCHEMA, exportedAt: new Date().toISOString(), papers: this.papers, calendar: this.calendar, settings: this.settings };
   },
 
   get(id) { return this.papers.find(p => p.id === id) || null; },
@@ -128,12 +169,57 @@ const Store = {
     this.persist();
   },
 
-  replaceAll(papers) {
-    this.papers = papers;
+  replaceAll(data) {
+    // accepts a full export object or a bare papers array (back-compat)
+    if (Array.isArray(data)) {
+      this.papers = data; this.calendar = []; this.settings = defaultSettings();
+    } else {
+      this.papers = Array.isArray(data.papers) ? data.papers : [];
+      this.calendar = Array.isArray(data.calendar) ? data.calendar : [];
+      this.settings = mergeSettings(data.settings);
+    }
     this.papers.forEach(normalizePaper);
+    this.calendar.forEach(normalizePeriod);
+    this.persist();
+  },
+
+  /* ----- academic calendar ----- */
+  upsertPeriod(period) {
+    normalizePeriod(period);
+    const i = this.calendar.findIndex(x => x._key === period._key);
+    if (i >= 0) this.calendar[i] = period; else this.calendar.push(period);
+    this.persist();
+  },
+  removePeriod(key) {
+    this.calendar = this.calendar.filter(x => x._key !== key);
+    this.persist();
+  },
+
+  /* ----- settings ----- */
+  updateTimelineSettings(patch) {
+    Object.assign(this.settings.timeline, patch);
     this.persist();
   },
 };
+
+function mergeSettings(s) {
+  const d = defaultSettings();
+  if (s && s.timeline) Object.assign(d.timeline, s.timeline);
+  return d;
+}
+
+function normalizePeriod(pd) {
+  if (!pd._key) pd._key = uid();
+  pd.name = pd.name || '';
+  pd.start = pd.start || '';
+  pd.end = pd.end || '';
+  pd.workload = WORKLOAD_MAP[pd.workload] ? pd.workload : (typeof pd.workload === 'number' ? pd.workload : 0);
+  return pd;
+}
+
+function blankPeriod() {
+  return normalizePeriod({ name: '', start: '', end: '', workload: 1 });
+}
 
 function normalizePaper(p) {
   if (!p._key) p._key = uid();

@@ -25,7 +25,8 @@ JS_FILES=(
   "$SRC/js/04-modal.js"
   "$SRC/js/05-board.js"
   "$SRC/js/06-timeline.js"
-  "$SRC/js/07-app.js"
+  "$SRC/js/07-calendar.js"
+  "$SRC/js/08-app.js"
 )
 BODY="$SRC/html/body.html"
 
