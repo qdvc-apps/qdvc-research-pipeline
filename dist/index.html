@@ -1,0 +1,1533 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>QDVC Research Pipeline</title>
+<style>
+/* ===== 01-base.css ===== */
+:root {
+  --ink: #1a1d24;
+  --ink-soft: #4a4f5a;
+  --ink-faint: #8b8f99;
+  --paper: #faf8f3;
+  --panel: #ffffff;
+  --teal: #1f5a5e;
+  --teal-dark: #163f42;
+  --teal-tint: #e6efee;
+  --amber: #b5852a;
+  --amber-tint: #f6edd6;
+  --rule: #d9d4c7;
+  --rule-soft: #e9e5da;
+  --danger: #a3352b;
+  --danger-tint: #f4e3e0;
+
+  /* status palette */
+  --st-onhold: #8b8f99;
+  --st-withme: #1f5a5e;
+  --st-coauthor: #b5852a;
+  --st-review: #6b4d8a;
+  --st-published: #2f7d4f;
+
+  --serif: Charter, "Iowan Old Style", Georgia, "Times New Roman", serif;
+  --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  --mono: "SF Mono", "JetBrains Mono", "Fira Mono", ui-monospace, Menlo, Consolas, monospace;
+
+  --shadow: 0 1px 2px rgba(26,29,36,.06), 0 4px 16px rgba(26,29,36,.05);
+  --radius: 6px;
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+}
+
+body {
+  font-family: var(--sans);
+  color: var(--ink);
+  background: var(--paper);
+  font-size: 15px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+
+h1, h2, h3, h4 { font-family: var(--serif); font-weight: 600; }
+
+button, input, select, textarea { font-family: inherit; font-size: inherit; color: inherit; }
+
+@media (prefers-reduced-motion: reduce) {
+  * { animation: none !important; transition: none !important; }
+}
+
+:focus-visible {
+  outline: 2px solid var(--teal);
+  outline-offset: 2px;
+  border-radius: 3px;
+}
+
+.app {
+  display: grid;
+  grid-template-columns: 232px 1fr;
+  min-height: 100vh;
+}
+
+/* ---------- Left rail ---------- */
+.rail {
+  background: var(--ink);
+  color: var(--paper);
+  padding: 22px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  position: sticky;
+  top: 0;
+  height: 100vh;
+}
+
+.brand { margin-bottom: 26px; }
+.brand .mark {
+  font-family: var(--mono);
+  font-size: 12px;
+  letter-spacing: .16em;
+  color: var(--amber);
+}
+.brand .name {
+  font-family: var(--serif);
+  font-size: 20px;
+  line-height: 1.2;
+  margin-top: 4px;
+  color: var(--paper);
+}
+.brand .sub { font-size: 12px; color: var(--ink-faint); margin-top: 4px; }
+
+.nav-item {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  padding: 9px 12px;
+  border-radius: var(--radius);
+  background: none;
+  border: none;
+  color: #c9cdd6;
+  cursor: pointer;
+  text-align: left;
+  width: 100%;
+  transition: background .12s, color .12s;
+}
+.nav-item:hover { background: rgba(255,255,255,.06); color: #fff; }
+.nav-item.active { background: var(--teal); color: #fff; }
+.nav-item .k {
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--amber);
+  min-width: 14px;
+}
+.nav-item.active .k { color: #fff; }
+
+.rail-foot { margin-top: auto; display: flex; flex-direction: column; gap: 8px; }
+.rail-foot .count {
+  font-size: 12px;
+  color: var(--ink-faint);
+  padding: 0 12px;
+}
+
+/* ---------- Main ---------- */
+.main { padding: 0; overflow: hidden; }
+.view { padding: 28px 34px 60px; }
+.view[hidden] { display: none; }
+
+.view-head {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 22px;
+  border-bottom: 1px solid var(--rule);
+  padding-bottom: 16px;
+}
+.view-head h1 { margin: 0; font-size: 26px; }
+.view-head p { margin: 4px 0 0; color: var(--ink-soft); font-size: 13px; }
+.view-head .actions { display: flex; gap: 8px; flex-wrap: wrap; }
+
+/* ===== 02-components.css ===== */
+/* ---------- Buttons ---------- */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 8px 14px;
+  border-radius: var(--radius);
+  border: 1px solid var(--rule);
+  background: var(--panel);
+  color: var(--ink);
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 500;
+  transition: background .12s, border-color .12s, transform .05s;
+}
+.btn:hover { border-color: var(--ink-faint); }
+.btn:active { transform: translateY(1px); }
+.btn-primary { background: var(--teal); border-color: var(--teal); color: #fff; }
+.btn-primary:hover { background: var(--teal-dark); border-color: var(--teal-dark); }
+.btn-danger { color: var(--danger); border-color: var(--danger-tint); background: var(--danger-tint); }
+.btn-danger:hover { border-color: var(--danger); }
+.btn-ghost { background: none; border-color: transparent; }
+.btn-ghost:hover { background: var(--rule-soft); }
+.btn-sm { padding: 5px 9px; font-size: 12px; }
+.btn[disabled] { opacity: .45; cursor: not-allowed; }
+
+/* ---------- Forms ---------- */
+.field { display: flex; flex-direction: column; gap: 5px; margin-bottom: 14px; }
+.field label { font-size: 12px; font-weight: 600; color: var(--ink-soft); }
+.field .hint { font-size: 11px; color: var(--ink-faint); font-weight: 400; }
+input[type=text], input[type=date], input[type=number], select, textarea {
+  padding: 8px 10px;
+  border: 1px solid var(--rule);
+  border-radius: var(--radius);
+  background: var(--panel);
+  width: 100%;
+}
+input:focus, select:focus, textarea:focus { border-color: var(--teal); outline: none; }
+textarea { resize: vertical; min-height: 60px; }
+.field.invalid input, .field.invalid select { border-color: var(--danger); }
+.field .error { font-size: 11px; color: var(--danger); min-height: 0; }
+.row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.row2 .field { margin-bottom: 0; }
+
+/* ---------- ID / badges ---------- */
+.pid {
+  font-family: var(--mono);
+  font-size: 12px;
+  letter-spacing: .04em;
+  background: var(--ink);
+  color: var(--paper);
+  padding: 2px 7px;
+  border-radius: 4px;
+  white-space: nowrap;
+}
+.pid.link { background: var(--teal-tint); color: var(--teal-dark); }
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 12px;
+  font-weight: 500;
+  padding: 2px 9px;
+  border-radius: 999px;
+  border: 1px solid transparent;
+  white-space: nowrap;
+}
+.badge .dot { width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
+.st-onhold   { color: var(--st-onhold);   background: #f0f0f1; }
+.st-withme   { color: var(--st-withme);   background: var(--teal-tint); }
+.st-coauthor { color: var(--amber);       background: var(--amber-tint); }
+.st-review   { color: var(--st-review);   background: #efe9f5; }
+.st-published{ color: var(--st-published);background: #e4f2ea; }
+
+.route-tag {
+  font-size: 11px;
+  color: var(--ink-soft);
+  text-transform: capitalize;
+}
+
+/* ---------- Table ---------- */
+.table-wrap {
+  background: var(--panel);
+  border: 1px solid var(--rule);
+  border-radius: var(--radius);
+  overflow: hidden;
+  box-shadow: var(--shadow);
+}
+table { width: 100%; border-collapse: collapse; }
+thead th {
+  text-align: left;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: .04em;
+  color: var(--ink-soft);
+  padding: 11px 14px;
+  border-bottom: 1px solid var(--rule);
+  background: #f7f4ec;
+  cursor: pointer;
+  user-select: none;
+}
+thead th .arrow { color: var(--amber); margin-left: 3px; }
+tbody td { padding: 12px 14px; border-bottom: 1px solid var(--rule-soft); vertical-align: top; }
+tbody tr:last-child td { border-bottom: none; }
+tbody tr:hover { background: #fbf9f4; }
+.cell-title { font-family: var(--serif); font-size: 15px; font-weight: 600; }
+.cell-coauthors { color: var(--ink-soft); font-size: 13px; }
+.cell-actions { text-align: right; white-space: nowrap; }
+.row-toolbar { display: flex; gap: 10px; margin-bottom: 14px; flex-wrap: wrap; align-items: center; }
+.search { flex: 1; min-width: 200px; max-width: 340px; }
+.filter-select { min-width: 150px; width: auto; }
+
+/* ---------- Empty ---------- */
+.empty {
+  text-align: center;
+  padding: 60px 20px;
+  color: var(--ink-soft);
+  background: var(--panel);
+  border: 1px dashed var(--rule);
+  border-radius: var(--radius);
+}
+.empty h3 { margin: 0 0 6px; font-size: 18px; color: var(--ink); }
+.empty p { margin: 0 0 16px; font-size: 14px; }
+
+/* ---------- Toast ---------- */
+.toast-stack {
+  position: fixed;
+  bottom: 20px; right: 20px;
+  display: flex; flex-direction: column; gap: 8px;
+  z-index: 200;
+}
+.toast {
+  background: var(--ink);
+  color: var(--paper);
+  padding: 11px 15px;
+  border-radius: var(--radius);
+  font-size: 13px;
+  box-shadow: var(--shadow);
+  max-width: 320px;
+  animation: toast-in .18s ease-out;
+}
+.toast.err { background: var(--danger); }
+@keyframes toast-in { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+
+/* ===== 03-views.css ===== */
+/* ---------- Modal ---------- */
+.modal-scrim {
+  position: fixed; inset: 0;
+  background: rgba(26,29,36,.42);
+  display: flex; align-items: flex-start; justify-content: center;
+  padding: 40px 16px;
+  overflow-y: auto;
+  z-index: 100;
+  animation: scrim-in .14s ease-out;
+}
+@keyframes scrim-in { from { opacity: 0; } to { opacity: 1; } }
+.modal {
+  background: var(--paper);
+  border-radius: 10px;
+  width: 100%;
+  max-width: 720px;
+  box-shadow: 0 12px 48px rgba(26,29,36,.28);
+  overflow: hidden;
+}
+.modal-head {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 18px 24px;
+  border-bottom: 1px solid var(--rule);
+  background: var(--panel);
+}
+.modal-head h2 { margin: 0; font-size: 20px; }
+.modal-body { padding: 22px 24px; max-height: 64vh; overflow-y: auto; }
+.modal-foot {
+  display: flex; justify-content: space-between; gap: 10px;
+  padding: 16px 24px;
+  border-top: 1px solid var(--rule);
+  background: var(--panel);
+}
+.modal-foot .right { display: flex; gap: 10px; }
+.close-x { background: none; border: none; font-size: 22px; cursor: pointer; color: var(--ink-faint); line-height: 1; }
+.close-x:hover { color: var(--ink); }
+
+.fieldset {
+  border: 1px solid var(--rule);
+  border-radius: var(--radius);
+  padding: 16px;
+  margin-bottom: 16px;
+  background: var(--panel);
+}
+.fieldset > legend {
+  font-family: var(--serif);
+  font-size: 15px;
+  font-weight: 600;
+  padding: 0 8px;
+}
+
+/* ---------- Events editor ---------- */
+.event-row {
+  display: grid;
+  grid-template-columns: 130px 1fr auto;
+  gap: 10px;
+  align-items: start;
+  padding: 12px;
+  border: 1px solid var(--rule-soft);
+  border-radius: var(--radius);
+  margin-bottom: 10px;
+  background: var(--paper);
+}
+.event-row .detail-line { grid-column: 1 / -1; display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.event-row .note-line { grid-column: 1 / -1; }
+.event-row .rm { align-self: start; }
+.events-empty { font-size: 13px; color: var(--ink-faint); padding: 8px 0 12px; }
+
+/* ---------- Kanban ---------- */
+.board {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(230px, 1fr);
+  gap: 14px;
+  overflow-x: auto;
+  padding-bottom: 12px;
+  align-items: start;
+}
+.column {
+  background: #f4f1e9;
+  border: 1px solid var(--rule);
+  border-radius: var(--radius);
+  display: flex;
+  flex-direction: column;
+  min-height: 120px;
+}
+.column.drop-target { outline: 2px dashed var(--teal); outline-offset: -4px; background: var(--teal-tint); }
+.column-head {
+  padding: 11px 14px;
+  border-bottom: 1px solid var(--rule);
+  display: flex; align-items: center; justify-content: space-between;
+  font-size: 13px; font-weight: 600;
+}
+.column-head .n { font-family: var(--mono); font-size: 12px; color: var(--ink-faint); }
+.column-body { padding: 10px; display: flex; flex-direction: column; gap: 9px; min-height: 40px; }
+.card {
+  background: var(--panel);
+  border: 1px solid var(--rule);
+  border-left-width: 3px;
+  border-radius: 5px;
+  padding: 11px 12px;
+  cursor: grab;
+  box-shadow: var(--shadow);
+}
+.card:active { cursor: grabbing; }
+.card.dragging { opacity: .4; }
+.card .card-top { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-bottom: 7px; }
+.card .card-title { font-family: var(--serif); font-size: 14px; font-weight: 600; line-height: 1.3; }
+.card .card-meta { font-size: 12px; color: var(--ink-soft); margin-top: 6px; display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+
+/* ---------- Timeline ---------- */
+.tl-toolbar {
+  display: flex; gap: 16px; flex-wrap: wrap; align-items: center;
+  margin-bottom: 16px;
+  padding: 14px 16px;
+  background: var(--panel);
+  border: 1px solid var(--rule);
+  border-radius: var(--radius);
+}
+.tl-toolbar .group { display: flex; align-items: center; gap: 8px; }
+.tl-toolbar label.inline { font-size: 13px; color: var(--ink-soft); display: flex; align-items: center; gap: 6px; cursor: pointer; }
+.tl-paperfilter { position: relative; }
+.tl-paperfilter .menu {
+  position: absolute; top: calc(100% + 6px); left: 0;
+  background: var(--panel); border: 1px solid var(--rule);
+  border-radius: var(--radius); box-shadow: var(--shadow);
+  padding: 8px; z-index: 30; min-width: 240px; max-height: 300px; overflow-y: auto;
+}
+.tl-paperfilter .menu label { display: flex; align-items: center; gap: 8px; padding: 5px 6px; font-size: 13px; cursor: pointer; border-radius: 4px; }
+.tl-paperfilter .menu label:hover { background: var(--rule-soft); }
+.tl-paperfilter .menu .menu-actions { display: flex; gap: 6px; padding: 4px 6px 8px; border-bottom: 1px solid var(--rule-soft); margin-bottom: 6px; }
+
+.tl-canvas {
+  background: var(--panel);
+  border: 1px solid var(--rule);
+  border-radius: var(--radius);
+  overflow-x: auto;
+  box-shadow: var(--shadow);
+}
+.tl-inner { position: relative; }
+.tl-axis {
+  position: relative;
+  height: 30px;
+  border-bottom: 1px solid var(--rule);
+  background: #f7f4ec;
+}
+.tl-tick { position: absolute; top: 0; height: 100%; border-left: 1px solid var(--rule-soft); }
+.tl-tick span { position: absolute; top: 7px; left: 5px; font-size: 11px; color: var(--ink-faint); font-family: var(--mono); white-space: nowrap; }
+
+.tl-lane {
+  position: relative;
+  border-bottom: 1px solid var(--rule-soft);
+  display: flex;
+  align-items: stretch;
+}
+.tl-lane:last-child { border-bottom: none; }
+.tl-lane .lane-label {
+  width: 220px;
+  min-width: 220px;
+  padding: 12px 14px;
+  border-right: 1px solid var(--rule);
+  background: var(--paper);
+  position: sticky; left: 0; z-index: 5;
+}
+.tl-lane .lane-label .lt { font-family: var(--serif); font-size: 14px; font-weight: 600; line-height: 1.25; margin-top: 6px; display: block; }
+.tl-lane .lane-track { position: relative; flex: 1; min-height: 62px; }
+
+.tl-seg {
+  position: absolute;
+  top: 22px;
+  height: 16px;
+  border-radius: 8px;
+  background: var(--teal);
+  opacity: .85;
+}
+.tl-seg.current { background: repeating-linear-gradient(45deg, var(--amber), var(--amber) 6px, #c99a3f 6px, #c99a3f 12px); }
+.tl-seg .dur {
+  position: absolute; top: -17px; left: 50%; transform: translateX(-50%);
+  font-size: 10px; color: var(--ink-soft); font-family: var(--mono); white-space: nowrap;
+}
+.tl-node {
+  position: absolute; top: 18px;
+  width: 12px; height: 12px; border-radius: 50%;
+  background: var(--panel); border: 2px solid var(--ink);
+  transform: translateX(-50%);
+  z-index: 3; cursor: default;
+}
+.tl-node.decision { border-color: var(--amber); }
+.tl-node.terminal { background: var(--st-published); border-color: var(--st-published); }
+.tl-node .node-tip {
+  position: absolute; bottom: 18px; left: 50%; transform: translateX(-50%);
+  background: var(--ink); color: var(--paper);
+  padding: 6px 9px; border-radius: 5px; font-size: 11px; line-height: 1.4;
+  white-space: nowrap; opacity: 0; pointer-events: none; transition: opacity .12s;
+  z-index: 20;
+}
+.tl-node:hover .node-tip { opacity: 1; }
+.tl-lane .lane-badge { display: block; margin-top: 8px; }
+.tl-linkflag { font-size: 11px; color: var(--teal); margin-top: 8px; display: inline-block; }
+
+@media (max-width: 720px) {
+  .app { grid-template-columns: 1fr; }
+  .rail { position: static; height: auto; flex-direction: row; flex-wrap: wrap; align-items: center; }
+  .rail-foot { margin: 0; flex-direction: row; }
+  .row2 { grid-template-columns: 1fr; }
+}
+
+</style>
+</head>
+<body>
+<div class="app">
+  <aside class="rail">
+    <div class="brand">
+      <div class="mark">QDVC</div>
+      <div class="name">Research Pipeline</div>
+      <div class="sub">Ideation to publication</div>
+    </div>
+    <nav id="nav">
+      <button class="nav-item active" data-view="table"><span class="k">1</span> Papers</button>
+      <button class="nav-item" data-view="board"><span class="k">2</span> Board</button>
+      <button class="nav-item" data-view="timeline"><span class="k">3</span> Timeline</button>
+    </nav>
+    <div class="rail-foot">
+      <div class="count" id="railCount"></div>
+      <button class="btn btn-sm btn-ghost" id="btnExport" style="color:#c9cdd6">Export JSON</button>
+      <button class="btn btn-sm btn-ghost" id="btnImport" style="color:#c9cdd6">Import JSON</button>
+      <input type="file" id="importFile" accept="application/json,.json" hidden>
+    </div>
+  </aside>
+
+  <main class="main">
+    <!-- TABLE VIEW -->
+    <section class="view" id="view-table">
+      <div class="view-head">
+        <div>
+          <h1>Papers</h1>
+          <p>Every project in your pipeline. Click a row to edit.</p>
+        </div>
+        <div class="actions">
+          <button class="btn btn-primary" id="btnNew">New paper</button>
+        </div>
+      </div>
+      <div class="row-toolbar">
+        <input type="text" class="search" id="tableSearch" placeholder="Search title, ID, coauthors…">
+        <select class="filter-select" id="tableStatusFilter"><option value="">All statuses</option></select>
+        <select class="filter-select" id="tableRouteFilter"><option value="">All routes</option></select>
+      </div>
+      <div id="tableHost"></div>
+    </section>
+
+    <!-- BOARD VIEW -->
+    <section class="view" id="view-board" hidden>
+      <div class="view-head">
+        <div>
+          <h1>Board</h1>
+          <p>Drag a paper between columns to change its work status.</p>
+        </div>
+        <div class="actions">
+          <button class="btn btn-primary" id="btnNew2">New paper</button>
+        </div>
+      </div>
+      <div id="boardHost"></div>
+    </section>
+
+    <!-- TIMELINE VIEW -->
+    <section class="view" id="view-timeline" hidden>
+      <div class="view-head">
+        <div>
+          <h1>Timeline</h1>
+          <p>Publication events across time. Hover a marker for detail; the striped bar is the current step through today.</p>
+        </div>
+      </div>
+      <div class="tl-toolbar" id="tlToolbar"></div>
+      <div id="timelineHost"></div>
+    </section>
+  </main>
+</div>
+
+<div id="modalHost"></div>
+<div class="toast-stack" id="toastStack"></div>
+<script>
+/* ===== 01-store.js ===== */
+/* ============================================================
+   QDVC Research Pipeline — data model & store
+   ============================================================ */
+
+const STORAGE_KEY = 'qdvc.pipeline.v1';
+const SCHEMA = 1;
+
+const STATUSES = [
+  { value: 'onhold',   label: 'On hold',        cls: 'st-onhold' },
+  { value: 'withme',   label: 'With me',        cls: 'st-withme' },
+  { value: 'coauthor', label: 'With a coauthor',cls: 'st-coauthor' },
+  { value: 'review',   label: 'Under review',   cls: 'st-review' },
+  { value: 'published',label: 'Published',      cls: 'st-published' },
+];
+const STATUS_MAP = Object.fromEntries(STATUSES.map(s => [s.value, s]));
+
+const ROUTES = [
+  { value: 'conference', label: 'Conference' },
+  { value: 'journal',    label: 'Journal' },
+  { value: 'other',      label: 'Other' },
+];
+
+/* Event types per route. `detail` flags a type that carries structured fields. */
+const EVENT_TYPES = {
+  conference: [
+    { value: 'conf_submitted',   label: 'Submitted to conference' },
+    { value: 'conf_decision',    label: 'Received decision from conference', detail: 'decision' },
+    { value: 'conf_resubmitted', label: 'Resubmitted to conference' },
+    { value: 'conf_proceedings', label: 'Included in conference proceedings' },
+    { value: 'conf_presented',   label: 'Presented at conference', terminal: true },
+  ],
+  journal: [
+    { value: 'jrn_submitted',    label: 'Submitted to journal' },
+    { value: 'jrn_decision',     label: 'Received decision from journal', detail: 'decision' },
+    { value: 'jrn_resubmitted',  label: 'Resubmitted to journal' },
+    { value: 'jrn_online',       label: 'Published online', terminal: true },
+    { value: 'jrn_print',        label: 'Published in print', detail: 'volissue', terminal: true },
+  ],
+  other: [], // freeform only
+};
+
+const DECISIONS = [
+  { value: 'reject', label: 'Reject' },
+  { value: 'revise', label: 'Revise' },
+  { value: 'accept', label: 'Accept' },
+];
+
+/* Flat lookup for any event type value -> definition */
+const EVENT_TYPE_MAP = {};
+Object.values(EVENT_TYPES).flat().forEach(t => { EVENT_TYPE_MAP[t.value] = t; });
+
+function eventTypesForRoute(route) { return EVENT_TYPES[route] || []; }
+function eventTypeLabel(v) {
+  if (!v) return 'Untagged event';
+  return EVENT_TYPE_MAP[v] ? EVENT_TYPE_MAP[v].label : v;
+}
+function isDecisionType(v) { return EVENT_TYPE_MAP[v] && EVENT_TYPE_MAP[v].detail === 'decision'; }
+function isVolIssueType(v) { return EVENT_TYPE_MAP[v] && EVENT_TYPE_MAP[v].detail === 'volissue'; }
+function isTerminalType(v) { return !!(EVENT_TYPE_MAP[v] && EVENT_TYPE_MAP[v].terminal); }
+
+const ID_RE = /^[0-9]{2}[A-Z]{2}$/;
+function isValidId(id) { return ID_RE.test(id || ''); }
+
+function uid() { return 'e' + Math.random().toString(36).slice(2, 9); }
+
+/* ---------- Store ---------- */
+const Store = {
+  papers: [],
+
+  load() {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (raw) {
+        const data = JSON.parse(raw);
+        this.papers = Array.isArray(data.papers) ? data.papers : [];
+      } else {
+        this.papers = [];
+      }
+    } catch (e) {
+      console.error('Load failed', e);
+      this.papers = [];
+    }
+    this.papers.forEach(normalizePaper);
+  },
+
+  persist() {
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(this.serialize()));
+    } catch (e) {
+      toast('Could not save to browser storage. Storage may be full.', true);
+    }
+  },
+
+  serialize() {
+    return { schema: SCHEMA, exportedAt: new Date().toISOString(), papers: this.papers };
+  },
+
+  get(id) { return this.papers.find(p => p.id === id) || null; },
+
+  idExists(id, exceptKey) {
+    return this.papers.some(p => p.id === id && p._key !== exceptKey);
+  },
+
+  upsert(paper) {
+    normalizePaper(paper);
+    const i = this.papers.findIndex(p => p._key === paper._key);
+    if (i >= 0) this.papers[i] = paper; else this.papers.push(paper);
+    this.persist();
+  },
+
+  remove(key) {
+    // clear any journal->conference links pointing at the removed paper's id
+    const removed = this.papers.find(p => p._key === key);
+    this.papers = this.papers.filter(p => p._key !== key);
+    if (removed) {
+      this.papers.forEach(p => { if (p.derivedFrom === removed.id) p.derivedFrom = ''; });
+    }
+    this.persist();
+  },
+
+  replaceAll(papers) {
+    this.papers = papers;
+    this.papers.forEach(normalizePaper);
+    this.persist();
+  },
+};
+
+function normalizePaper(p) {
+  if (!p._key) p._key = uid();
+  p.id = (p.id || '').toUpperCase();
+  p.title = p.title || '';
+  p.coauthors = p.coauthors || '';
+  p.status = STATUS_MAP[p.status] ? p.status : 'onhold';
+  p.route = ROUTES.some(r => r.value === p.route) ? p.route : 'conference';
+  p.derivedFrom = p.derivedFrom || '';
+  if (!Array.isArray(p.events)) p.events = [];
+  p.events.forEach(ev => {
+    if (!ev._key) ev._key = uid();
+    ev.date = ev.date || '';
+    ev.type = ev.type || '';
+    ev.decision = ev.decision || '';
+    ev.volume = ev.volume || '';
+    ev.issue = ev.issue || '';
+    ev.note = ev.note || '';
+  });
+  return p;
+}
+
+function blankPaper() {
+  return normalizePaper({ id: '', title: '', coauthors: '', status: 'onhold', route: 'conference', derivedFrom: '', events: [] });
+}
+
+function newEvent() {
+  return { _key: uid(), date: '', type: '', decision: '', volume: '', issue: '', note: '' };
+}
+
+/* ===== 02-util.js ===== */
+/* ============================================================
+   Utilities: DOM, dates, toast, escaping, import/export
+   ============================================================ */
+
+const $  = (sel, root = document) => root.querySelector(sel);
+const $$ = (sel, root = document) => Array.from(root.querySelectorAll(sel));
+
+function el(tag, attrs = {}, ...kids) {
+  const node = document.createElement(tag);
+  for (const [k, v] of Object.entries(attrs)) {
+    if (v == null || v === false) continue;
+    if (k === 'class') node.className = v;
+    else if (k === 'html') node.innerHTML = v;
+    else if (k.startsWith('on') && typeof v === 'function') node.addEventListener(k.slice(2), v);
+    else if (k === 'dataset') Object.assign(node.dataset, v);
+    else node.setAttribute(k, v === true ? '' : v);
+  }
+  kids.flat().forEach(kid => {
+    if (kid == null || kid === false) return;
+    node.appendChild(typeof kid === 'string' ? document.createTextNode(kid) : kid);
+  });
+  return node;
+}
+
+function esc(s) {
+  return String(s == null ? '' : s)
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+}
+
+/* ---------- Toast ---------- */
+function toast(msg, isErr = false) {
+  const stack = $('#toastStack');
+  const t = el('div', { class: 'toast' + (isErr ? ' err' : '') }, msg);
+  stack.appendChild(t);
+  setTimeout(() => {
+    t.style.transition = 'opacity .25s';
+    t.style.opacity = '0';
+    setTimeout(() => t.remove(), 260);
+  }, isErr ? 4200 : 2600);
+}
+
+/* ---------- Dates ---------- */
+function parseDate(s) {
+  if (!s) return null;
+  const d = new Date(s + 'T00:00:00');
+  return isNaN(d) ? null : d;
+}
+function fmtDate(s) {
+  const d = parseDate(s);
+  if (!d) return '—';
+  return d.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
+}
+const DAY = 86400000;
+function daysBetween(a, b) { return Math.round((b - a) / DAY); }
+
+/* Human duration: e.g. "3d", "5w", "4mo", "1y 2mo" */
+function humanDuration(days) {
+  if (days < 0) days = 0;
+  if (days === 0) return 'same day';
+  if (days < 14) return days + 'd';
+  if (days < 60) return Math.round(days / 7) + 'w';
+  if (days < 365) return Math.round(days / 30) + 'mo';
+  const y = Math.floor(days / 365);
+  const mo = Math.round((days % 365) / 30);
+  return mo ? `${y}y ${mo}mo` : `${y}y`;
+}
+
+function todayISO() { return new Date().toISOString().slice(0, 10); }
+
+/* Sorted (by date, undated last) copy of a paper's events */
+function sortedEvents(paper) {
+  return paper.events.slice().sort((a, b) => {
+    const da = parseDate(a.date), db = parseDate(b.date);
+    if (da && db) return da - db;
+    if (da) return -1;
+    if (db) return 1;
+    return 0;
+  });
+}
+
+/* ---------- Export / Import ---------- */
+function exportJSON() {
+  const blob = new Blob([JSON.stringify(Store.serialize(), null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = el('a', { href: url, download: `qdvc-pipeline-${todayISO()}.json` });
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+  toast('Exported ' + Store.papers.length + ' paper' + (Store.papers.length === 1 ? '' : 's'));
+}
+
+function importJSONText(text) {
+  let data;
+  try { data = JSON.parse(text); }
+  catch { toast('That file is not valid JSON.', true); return; }
+  const papers = Array.isArray(data) ? data : data.papers;
+  if (!Array.isArray(papers)) { toast('No papers found in that file.', true); return; }
+  // fresh keys to avoid collisions with current session
+  papers.forEach(p => { p._key = uid(); });
+  Store.replaceAll(papers);
+  App.renderAll();
+  toast('Imported ' + papers.length + ' paper' + (papers.length === 1 ? '' : 's'));
+}
+
+function statusBadge(value) {
+  const s = STATUS_MAP[value] || STATUS_MAP.onhold;
+  return el('span', { class: 'badge ' + s.cls },
+    el('span', { class: 'dot' }), s.label);
+}
+
+/* ===== 03-table.js ===== */
+/* ============================================================
+   Table view
+   ============================================================ */
+
+const TableView = {
+  sortKey: 'id',
+  sortDir: 1,
+  search: '',
+  fStatus: '',
+  fRoute: '',
+
+  mount() {
+    $('#tableSearch').addEventListener('input', e => { this.search = e.target.value.trim().toLowerCase(); this.render(); });
+    const sf = $('#tableStatusFilter');
+    STATUSES.forEach(s => sf.appendChild(el('option', { value: s.value }, s.label)));
+    sf.addEventListener('change', e => { this.fStatus = e.target.value; this.render(); });
+    const rf = $('#tableRouteFilter');
+    ROUTES.forEach(r => rf.appendChild(el('option', { value: r.value }, r.label)));
+    rf.addEventListener('change', e => { this.fRoute = e.target.value; this.render(); });
+  },
+
+  rows() {
+    let rows = Store.papers.slice();
+    if (this.fStatus) rows = rows.filter(p => p.status === this.fStatus);
+    if (this.fRoute) rows = rows.filter(p => p.route === this.fRoute);
+    if (this.search) {
+      const q = this.search;
+      rows = rows.filter(p =>
+        p.id.toLowerCase().includes(q) ||
+        p.title.toLowerCase().includes(q) ||
+        p.coauthors.toLowerCase().includes(q));
+    }
+    const k = this.sortKey, dir = this.sortDir;
+    rows.sort((a, b) => {
+      let av, bv;
+      if (k === 'events') { av = a.events.length; bv = b.events.length; }
+      else if (k === 'status') { av = STATUS_MAP[a.status].label; bv = STATUS_MAP[b.status].label; }
+      else { av = (a[k] || '').toString().toLowerCase(); bv = (b[k] || '').toString().toLowerCase(); }
+      if (av < bv) return -1 * dir;
+      if (av > bv) return 1 * dir;
+      return 0;
+    });
+    return rows;
+  },
+
+  render() {
+    const host = $('#tableHost');
+    host.innerHTML = '';
+    const rows = this.rows();
+
+    if (Store.papers.length === 0) {
+      host.appendChild(el('div', { class: 'empty' },
+        el('h3', {}, 'No papers yet'),
+        el('p', {}, 'Track your first research project from ideation through to publication.'),
+        el('button', { class: 'btn btn-primary', onclick: () => openPaperModal(null) }, 'New paper')));
+      return;
+    }
+    if (rows.length === 0) {
+      host.appendChild(el('div', { class: 'empty' },
+        el('h3', {}, 'No matches'),
+        el('p', {}, 'No papers match your search or filters.')));
+      return;
+    }
+
+    const arrow = key => this.sortKey === key ? el('span', { class: 'arrow' }, this.sortDir > 0 ? '▲' : '▼') : '';
+    const th = (key, label) => el('th', { onclick: () => this.sort(key) }, label, arrow(key));
+
+    const table = el('table', {},
+      el('thead', {}, el('tr', {},
+        th('id', 'ID'), th('title', 'Title'), th('coauthors', 'Coauthors'),
+        th('status', 'Status'), th('route', 'Route'), th('events', 'Events'),
+        el('th', { style: 'text-align:right' }, 'Actions'))),
+      el('tbody', {}, ...rows.map(p => this.rowEl(p))));
+
+    host.appendChild(el('div', { class: 'table-wrap' }, table));
+  },
+
+  rowEl(p) {
+    const route = ROUTES.find(r => r.value === p.route);
+    const derived = p.route === 'journal' && p.derivedFrom
+      ? el('span', { class: 'pid link', title: 'Developed from ' + p.derivedFrom, style: 'margin-left:6px' }, '↳ ' + p.derivedFrom)
+      : null;
+    return el('tr', { onclick: e => { if (!e.target.closest('button')) openPaperModal(p._key); }, style: 'cursor:pointer' },
+      el('td', {}, el('span', { class: 'pid' }, p.id || '—')),
+      el('td', { class: 'cell-title' }, p.title || el('span', { style: 'color:var(--ink-faint);font-family:var(--sans);font-weight:400' }, 'Untitled')),
+      el('td', { class: 'cell-coauthors' }, p.coauthors || '—'),
+      el('td', {}, statusBadge(p.status)),
+      el('td', {}, el('span', { class: 'route-tag' }, route ? route.label : p.route), derived),
+      el('td', { style: 'font-family:var(--mono);color:var(--ink-soft)' }, String(p.events.length)),
+      el('td', { class: 'cell-actions' },
+        el('button', { class: 'btn btn-sm btn-ghost', onclick: () => openPaperModal(p._key) }, 'Edit'),
+        el('button', { class: 'btn btn-sm btn-danger', style: 'margin-left:6px', onclick: () => confirmDelete(p) }, 'Delete')));
+  },
+
+  sort(key) {
+    if (this.sortKey === key) this.sortDir *= -1;
+    else { this.sortKey = key; this.sortDir = 1; }
+    this.render();
+  },
+};
+
+function confirmDelete(p) {
+  const label = p.title ? `"${p.title}"` : (p.id || 'this paper');
+  if (confirm(`Delete ${label}? This cannot be undone.`)) {
+    Store.remove(p._key);
+    App.renderAll();
+    toast('Deleted ' + (p.id || 'paper'));
+  }
+}
+
+/* ===== 04-modal.js ===== */
+/* ============================================================
+   Paper create / edit modal
+   ============================================================ */
+
+let editing = null; // working copy
+
+function openPaperModal(key) {
+  const source = key ? Store.get(key) : null;
+  editing = source ? JSON.parse(JSON.stringify(source)) : blankPaper();
+  if (!editing._key) editing._key = uid();
+  renderModal(!source);
+}
+
+function closeModal() {
+  editing = null;
+  $('#modalHost').innerHTML = '';
+  document.removeEventListener('keydown', escClose);
+}
+function escClose(e) { if (e.key === 'Escape') closeModal(); }
+
+function renderModal(isNew) {
+  const host = $('#modalHost');
+  host.innerHTML = '';
+
+  const idField = el('div', { class: 'field', id: 'f-id' },
+    el('label', {}, 'Paper ID ', el('span', { class: 'hint' }, '— format 00AA (2 digits, 2 capitals)')),
+    el('input', { type: 'text', id: 'in-id', value: editing.id, maxlength: '4', placeholder: '26AB',
+      style: 'font-family:var(--mono);text-transform:uppercase;max-width:140px',
+      oninput: e => { e.target.value = e.target.value.toUpperCase(); editing.id = e.target.value; clearErr('f-id'); } }),
+    el('div', { class: 'error', id: 'err-id' }));
+
+  const titleField = el('div', { class: 'field', id: 'f-title' },
+    el('label', {}, 'Title'),
+    el('input', { type: 'text', id: 'in-title', value: editing.title, placeholder: 'e.g. Videoconferencing fatigue in distributed teams',
+      oninput: e => { editing.title = e.target.value; clearErr('f-title'); } }),
+    el('div', { class: 'error', id: 'err-title' }));
+
+  const coField = el('div', { class: 'field' },
+    el('label', {}, 'Coauthors ', el('span', { class: 'hint' }, '— comma separated')),
+    el('input', { type: 'text', value: editing.coauthors, placeholder: 'A. Smith, B. Doe',
+      oninput: e => { editing.coauthors = e.target.value; } }));
+
+  const statusSel = el('select', { oninput: e => { editing.status = e.target.value; } },
+    ...STATUSES.map(s => el('option', { value: s.value, selected: editing.status === s.value }, s.label)));
+  const statusField = el('div', { class: 'field' }, el('label', {}, 'Work status'), statusSel);
+
+  const routeSel = el('select', { id: 'in-route', oninput: e => onRouteChange(e.target.value) },
+    ...ROUTES.map(r => el('option', { value: r.value, selected: editing.route === r.value }, r.label)));
+  const routeField = el('div', { class: 'field' }, el('label', {}, 'Publication route'), routeSel);
+
+  const derivedHost = el('div', { id: 'derivedHost' });
+
+  const eventsHost = el('div', { id: 'eventsHost' });
+
+  const body = el('div', { class: 'modal-body' },
+    el('div', { class: 'row2' }, idField, statusField),
+    titleField,
+    coField,
+    el('div', { class: 'row2' }, routeField, derivedHost),
+    el('fieldset', { class: 'fieldset' },
+      el('legend', {}, 'Publication events'),
+      eventsHost,
+      el('button', { class: 'btn btn-sm', type: 'button', onclick: addEventRow }, '+ Add event')));
+
+  const modal = el('div', { class: 'modal', role: 'dialog', 'aria-modal': 'true' },
+    el('div', { class: 'modal-head' },
+      el('h2', {}, isNew ? 'New paper' : 'Edit paper'),
+      el('button', { class: 'close-x', 'aria-label': 'Close', onclick: closeModal }, '×')),
+    body,
+    el('div', { class: 'modal-foot' },
+      el('div', {}, isNew ? '' : el('button', { class: 'btn btn-danger', type: 'button',
+        onclick: () => { const p = Store.get(editing._key); closeModal(); if (p) confirmDelete(p); } }, 'Delete')),
+      el('div', { class: 'right' },
+        el('button', { class: 'btn', type: 'button', onclick: closeModal }, 'Cancel'),
+        el('button', { class: 'btn btn-primary', type: 'button', onclick: savePaper }, 'Save paper'))));
+
+  const scrim = el('div', { class: 'modal-scrim', onclick: e => { if (e.target === scrim) closeModal(); } }, modal);
+  host.appendChild(scrim);
+  document.addEventListener('keydown', escClose);
+
+  renderDerived();
+  renderEvents();
+  $('#in-id').focus();
+}
+
+function onRouteChange(route) {
+  editing.route = route;
+  // drop event tags that no longer belong to this route (keep the event, untag it)
+  const valid = new Set(eventTypesForRoute(route).map(t => t.value));
+  editing.events.forEach(ev => { if (ev.type && !valid.has(ev.type)) { ev.type = ''; ev.decision = ''; ev.volume = ''; ev.issue = ''; } });
+  if (route !== 'journal') editing.derivedFrom = '';
+  renderDerived();
+  renderEvents();
+}
+
+function renderDerived() {
+  const host = $('#derivedHost');
+  host.innerHTML = '';
+  if (editing.route !== 'journal') { host.appendChild(el('div', { class: 'field' })); return; }
+  const candidates = Store.papers.filter(p => p._key !== editing._key && p.route === 'conference' && p.id);
+  const sel = el('select', { oninput: e => { editing.derivedFrom = e.target.value; } },
+    el('option', { value: '' }, '— none —'),
+    ...candidates.map(p => el('option', { value: p.id, selected: editing.derivedFrom === p.id },
+      `${p.id} · ${p.title || 'Untitled'}`)));
+  // if current value references a paper not in candidates (e.g. missing), still show it
+  if (editing.derivedFrom && !candidates.some(p => p.id === editing.derivedFrom)) {
+    sel.appendChild(el('option', { value: editing.derivedFrom, selected: true }, editing.derivedFrom + ' (unlinked)'));
+  }
+  host.appendChild(el('div', { class: 'field' },
+    el('label', {}, 'Developed from ', el('span', { class: 'hint' }, '— conference paper')),
+    sel));
+}
+
+function addEventRow() {
+  editing.events.push(newEvent());
+  renderEvents();
+}
+
+function renderEvents() {
+  const host = $('#eventsHost');
+  host.innerHTML = '';
+  if (editing.events.length === 0) {
+    host.appendChild(el('div', { class: 'events-empty' }, 'No events yet. Add submissions, decisions, and milestones to build the timeline.'));
+    return;
+  }
+  editing.events.forEach((ev, i) => host.appendChild(eventRowEl(ev, i)));
+}
+
+function eventRowEl(ev, i) {
+  const types = eventTypesForRoute(editing.route);
+  const typeSel = el('select', { oninput: e => { ev.type = e.target.value; if (!isDecisionType(ev.type)) ev.decision = ''; if (!isVolIssueType(ev.type)) { ev.volume = ''; ev.issue = ''; } renderEvents(); } },
+    el('option', { value: '' }, 'Untagged'),
+    ...types.map(t => el('option', { value: t.value, selected: ev.type === t.value }, t.label)));
+
+  const dateIn = el('input', { type: 'date', value: ev.date, oninput: e => { ev.date = e.target.value; } });
+
+  const kids = [
+    el('div', { class: 'field', style: 'margin:0' }, el('label', {}, 'Date'), dateIn),
+    el('div', { class: 'field', style: 'margin:0' }, el('label', {}, 'Type'), typeSel),
+    el('button', { class: 'btn btn-sm btn-danger rm', type: 'button', title: 'Remove event',
+      onclick: () => { editing.events.splice(i, 1); renderEvents(); } }, 'Remove'),
+  ];
+
+  if (isDecisionType(ev.type)) {
+    const decSel = el('select', { oninput: e => { ev.decision = e.target.value; } },
+      el('option', { value: '' }, '— decision —'),
+      ...DECISIONS.map(d => el('option', { value: d.value, selected: ev.decision === d.value }, d.label)));
+    kids.push(el('div', { class: 'detail-line' },
+      el('div', { class: 'field', style: 'margin:0' }, el('label', {}, 'Decision'), decSel),
+      el('div', {})));
+  }
+  if (isVolIssueType(ev.type)) {
+    kids.push(el('div', { class: 'detail-line' },
+      el('div', { class: 'field', style: 'margin:0' }, el('label', {}, 'Volume'),
+        el('input', { type: 'text', value: ev.volume, placeholder: 'e.g. 12', oninput: e => { ev.volume = e.target.value; } })),
+      el('div', { class: 'field', style: 'margin:0' }, el('label', {}, 'Issue'),
+        el('input', { type: 'text', value: ev.issue, placeholder: 'e.g. 3', oninput: e => { ev.issue = e.target.value; } }))));
+  }
+  kids.push(el('div', { class: 'note-line' },
+    el('div', { class: 'field', style: 'margin:0' }, el('label', {}, 'Note ', el('span', { class: 'hint' }, '— optional')),
+      el('input', { type: 'text', value: ev.note, placeholder: 'e.g. venue, reviewer notes', oninput: e => { ev.note = e.target.value; } }))));
+
+  return el('div', { class: 'event-row' }, ...kids);
+}
+
+function clearErr(fieldId) {
+  const f = $('#' + fieldId);
+  if (f) { f.classList.remove('invalid'); const e = f.querySelector('.error'); if (e) e.textContent = ''; }
+}
+function setErr(fieldId, msg) {
+  const f = $('#' + fieldId);
+  if (f) { f.classList.add('invalid'); const e = f.querySelector('.error'); if (e) e.textContent = msg; }
+}
+
+function savePaper() {
+  let ok = true;
+  const id = (editing.id || '').toUpperCase().trim();
+  editing.id = id;
+  if (!isValidId(id)) { setErr('f-id', 'ID must be 2 digits then 2 capital letters, e.g. 26AB.'); ok = false; }
+  else if (Store.idExists(id, editing._key)) { setErr('f-id', 'Another paper already uses this ID.'); ok = false; }
+  if (!editing.title.trim()) { setErr('f-title', 'Give the paper a title.'); ok = false; }
+  if (!ok) { toast('Please fix the highlighted fields.', true); return; }
+
+  Store.upsert(editing);
+  const savedId = editing.id;
+  closeModal();
+  App.renderAll();
+  toast('Saved ' + savedId);
+}
+
+/* ===== 05-board.js ===== */
+/* ============================================================
+   Kanban board view — drag to change work status
+   ============================================================ */
+
+const BoardView = {
+  dragKey: null,
+
+  render() {
+    const host = $('#boardHost');
+    host.innerHTML = '';
+    if (Store.papers.length === 0) {
+      host.appendChild(el('div', { class: 'empty' },
+        el('h3', {}, 'Nothing on the board'),
+        el('p', {}, 'Add a paper to see it here, grouped by work status.')));
+      return;
+    }
+    const board = el('div', { class: 'board' });
+    STATUSES.forEach(s => {
+      const papers = Store.papers.filter(p => p.status === s.value);
+      const body = el('div', { class: 'column-body', dataset: { status: s.value } });
+      papers.forEach(p => body.appendChild(this.card(p)));
+
+      const col = el('div', { class: 'column', dataset: { status: s.value } },
+        el('div', { class: 'column-head' },
+          el('span', {}, el('span', { class: 'badge ' + s.cls, style: 'font-size:12px' }, el('span', { class: 'dot' }), s.label)),
+          el('span', { class: 'n' }, String(papers.length))),
+        body);
+
+      col.addEventListener('dragover', e => { e.preventDefault(); col.classList.add('drop-target'); });
+      col.addEventListener('dragleave', () => col.classList.remove('drop-target'));
+      col.addEventListener('drop', e => {
+        e.preventDefault();
+        col.classList.remove('drop-target');
+        if (!this.dragKey) return;
+        const p = Store.get(this.dragKey);
+        if (p && p.status !== s.value) {
+          p.status = s.value;
+          Store.upsert(p);
+          App.renderAll();
+          toast(`${p.id || 'Paper'} → ${s.label}`);
+        }
+        this.dragKey = null;
+      });
+      board.appendChild(col);
+    });
+    host.appendChild(board);
+  },
+
+  card(p) {
+    const route = ROUTES.find(r => r.value === p.route);
+    const sCls = (STATUS_MAP[p.status] || {}).cls || 'st-onhold';
+    const accent = getComputedStyle(document.documentElement).getPropertyValue('--' + sCls.replace('st-', 'st-')).trim();
+    const card = el('div', {
+      class: 'card', draggable: 'true',
+      style: 'border-left-color:var(--' + sCls.replace('st-', 'st-') + ')',
+      onclick: () => openPaperModal(p._key),
+    },
+      el('div', { class: 'card-top' },
+        el('span', { class: 'pid' }, p.id || '—'),
+        el('span', { class: 'route-tag' }, route ? route.label : '')),
+      el('div', { class: 'card-title' }, p.title || 'Untitled'),
+      el('div', { class: 'card-meta' },
+        p.coauthors ? el('span', {}, p.coauthors) : el('span', { style: 'color:var(--ink-faint)' }, 'No coauthors'),
+        p.events.length ? el('span', { style: 'font-family:var(--mono)' }, p.events.length + ' event' + (p.events.length === 1 ? '' : 's')) : null,
+        (p.route === 'journal' && p.derivedFrom) ? el('span', { class: 'pid link' }, '↳ ' + p.derivedFrom) : null));
+
+    card.addEventListener('dragstart', () => { this.dragKey = p._key; card.classList.add('dragging'); });
+    card.addEventListener('dragend', () => { card.classList.remove('dragging'); this.dragKey = null; });
+    return card;
+  },
+};
+
+/* ===== 06-timeline.js ===== */
+/* ============================================================
+   Timeline view — all papers on a shared date axis
+   ============================================================ */
+
+const TimelineView = {
+  mergeLinked: false,
+  visible: null,        // Set of _keys shown; null = all
+  menuOpen: false,
+
+  mount() {
+    document.addEventListener('click', e => {
+      if (this.menuOpen && !e.target.closest('.tl-paperfilter')) { this.menuOpen = false; this.renderToolbar(); }
+    });
+  },
+
+  ensureVisible() {
+    if (this.visible === null) this.visible = new Set(Store.papers.map(p => p._key));
+    // prune keys that no longer exist; add brand-new papers as visible
+    const keys = new Set(Store.papers.map(p => p._key));
+    this.visible = new Set([...this.visible].filter(k => keys.has(k)));
+    Store.papers.forEach(p => { if (![...this.visible].includes(p._key)) { /* leave new papers hidden? no—show */ } });
+  },
+
+  render() {
+    this.ensureVisible();
+    this.renderToolbar();
+    this.renderCanvas();
+  },
+
+  renderToolbar() {
+    const bar = $('#tlToolbar');
+    bar.innerHTML = '';
+    if (Store.papers.length === 0) { bar.style.display = 'none'; return; }
+    bar.style.display = 'flex';
+
+    // paper filter dropdown
+    const shownCount = this.visible.size;
+    const filterBtn = el('button', { class: 'btn btn-sm', onclick: e => { e.stopPropagation(); this.menuOpen = !this.menuOpen; this.renderToolbar(); } },
+      `Papers: ${shownCount}/${Store.papers.length} ▾`);
+    const filterWrap = el('div', { class: 'tl-paperfilter group' }, filterBtn);
+
+    if (this.menuOpen) {
+      const menu = el('div', { class: 'menu' });
+      menu.appendChild(el('div', { class: 'menu-actions' },
+        el('button', { class: 'btn btn-sm btn-ghost', onclick: () => { this.visible = new Set(Store.papers.map(p => p._key)); this.render(); } }, 'All'),
+        el('button', { class: 'btn btn-sm btn-ghost', onclick: () => { this.visible = new Set(); this.render(); } }, 'None')));
+      Store.papers.forEach(p => {
+        const cb = el('input', { type: 'checkbox', checked: this.visible.has(p._key),
+          onchange: e => { if (e.target.checked) this.visible.add(p._key); else this.visible.delete(p._key); this.renderCanvas(); this.refreshFilterLabel(); } });
+        menu.appendChild(el('label', {}, cb, el('span', { class: 'pid' }, p.id || '—'), el('span', {}, p.title || 'Untitled')));
+      });
+      filterWrap.appendChild(menu);
+    }
+    bar.appendChild(filterWrap);
+
+    // merge linked toggle
+    const toggle = el('label', { class: 'inline' },
+      el('input', { type: 'checkbox', checked: this.mergeLinked, onchange: e => { this.mergeLinked = e.target.checked; this.renderCanvas(); } }),
+      'Merge journal papers with their source conference paper');
+    bar.appendChild(el('div', { class: 'group' }, toggle));
+  },
+
+  refreshFilterLabel() {
+    const btn = $('#tlToolbar .tl-paperfilter > button');
+    if (btn) btn.firstChild.textContent = `Papers: ${this.visible.size}/${Store.papers.length} ▾`;
+  },
+
+  /* Build the list of lanes to draw. A lane = { title, badge, papers:[{paper, events}] } */
+  buildLanes() {
+    const shown = Store.papers.filter(p => this.visible.has(p._key));
+    if (!this.mergeLinked) {
+      return shown.map(p => ({
+        id: p.id, title: p.title, status: p.status, route: p.route, derivedFrom: p.derivedFrom,
+        segments: this.paperSegments(p, p.id),
+      }));
+    }
+    // merged mode: a journal paper with derivedFrom folds its source conference paper into one lane
+    const byId = Object.fromEntries(Store.papers.map(p => [p.id, p]));
+    const consumed = new Set(); // conference papers folded into a journal lane
+    const lanes = [];
+    shown.forEach(p => {
+      if (p.route === 'journal' && p.derivedFrom && byId[p.derivedFrom]) {
+        const conf = byId[p.derivedFrom];
+        consumed.add(conf._key);
+        const segs = [...this.paperSegments(conf, conf.id), ...this.paperSegments(p, p.id)];
+        segs.sort((a, b) => a.start - b.start);
+        lanes.push({ id: `${conf.id} → ${p.id}`, title: p.title, status: p.status, route: 'journal', derivedFrom: '', merged: true, segments: segs });
+      }
+    });
+    shown.forEach(p => {
+      if (consumed.has(p._key)) return;
+      if (p.route === 'journal' && p.derivedFrom && byId[p.derivedFrom]) return; // already emitted as merged
+      lanes.push({ id: p.id, title: p.title, status: p.status, route: p.route, derivedFrom: p.derivedFrom, segments: this.paperSegments(p, p.id) });
+    });
+    return lanes;
+  },
+
+  /* Segments = consecutive dated events -> bars; plus a trailing "current" bar to today
+     if the paper is not in a terminal state. Returns [{start:Date,end:Date,from,to,current,decision,terminal}] */
+  paperSegments(p, ownerId) {
+    const evs = sortedEvents(p).filter(e => parseDate(e.date));
+    const segs = [];
+    for (let i = 0; i < evs.length - 1; i++) {
+      segs.push({
+        start: parseDate(evs[i].date), end: parseDate(evs[i + 1].date),
+        from: evs[i], to: evs[i + 1], owner: ownerId, current: false,
+      });
+    }
+    // node-only markers even if a single event
+    if (evs.length === 1) {
+      segs.push({ start: parseDate(evs[0].date), end: parseDate(evs[0].date), from: evs[0], to: evs[0], owner: ownerId, current: false, point: true });
+    }
+    // trailing current bar
+    const last = evs[evs.length - 1];
+    const terminalReached = evs.some(e => isTerminalType(e.type)) || p.status === 'published';
+    if (last && !terminalReached) {
+      segs.push({ start: parseDate(last.date), end: new Date(todayISO() + 'T00:00:00'), from: last, to: null, owner: ownerId, current: true });
+    }
+    return segs;
+  },
+
+  renderCanvas() {
+    const host = $('#timelineHost');
+    host.innerHTML = '';
+
+    if (Store.papers.length === 0) {
+      host.appendChild(el('div', { class: 'empty' },
+        el('h3', {}, 'Nothing to plot yet'),
+        el('p', {}, 'Add papers with dated publication events to see them here.')));
+      return;
+    }
+
+    const lanes = this.buildLanes();
+    const withDates = lanes.filter(l => l.segments.length > 0);
+    if (lanes.length === 0) {
+      host.appendChild(el('div', { class: 'empty' }, el('h3', {}, 'No papers selected'), el('p', {}, 'Use the Papers filter to choose what to plot.')));
+      return;
+    }
+    if (withDates.length === 0) {
+      host.appendChild(el('div', { class: 'empty' }, el('h3', {}, 'No dated events'),
+        el('p', {}, 'Add dates to publication events to position them on the timeline.')));
+      return;
+    }
+
+    // domain
+    let min = Infinity, max = -Infinity;
+    withDates.forEach(l => l.segments.forEach(s => { min = Math.min(min, +s.start); max = Math.max(max, +s.end); }));
+    min = new Date(min); max = new Date(max);
+    if (+min === +max) { min = new Date(+min - 30 * DAY); max = new Date(+max + 30 * DAY); }
+    const pad = Math.max((max - min) * 0.04, 5 * DAY);
+    min = new Date(+min - pad); max = new Date(+max + pad);
+    const span = max - min || DAY;
+
+    const LANE_LABEL_W = 220;
+    // Fit the track to the available canvas width by default so every lane is
+    // visible at once. Enforce a floor of ~0.35px/day so long pipelines can
+    // scroll horizontally for detail rather than collapsing markers together.
+    const avail = Math.max(360, (host.clientWidth || 900) - LANE_LABEL_W - 2);
+    const byDay = Math.ceil(span / DAY) * 0.35;
+    const trackW = Math.max(avail, byDay);
+    const totalW = LANE_LABEL_W + trackW;
+    const xOf = d => ((d - min) / span) * trackW;
+
+    const inner = el('div', { class: 'tl-inner', style: `width:${totalW}px` });
+
+    // axis
+    const axis = el('div', { class: 'tl-axis', style: `margin-left:${LANE_LABEL_W}px;width:${trackW}px` });
+    this.axisTicks(min, max).forEach(t => {
+      axis.appendChild(el('div', { class: 'tl-tick', style: `left:${xOf(t.date)}px` }, el('span', {}, t.label)));
+    });
+    inner.appendChild(el('div', { style: 'display:flex' },
+      el('div', { style: `width:${LANE_LABEL_W}px;min-width:${LANE_LABEL_W}px;background:#f7f4ec;border-right:1px solid var(--rule)` }),
+      axis));
+
+    // lanes
+    lanes.forEach(l => inner.appendChild(this.laneEl(l, xOf, trackW)));
+
+    host.appendChild(el('div', { class: 'tl-canvas' }, inner));
+  },
+
+  laneEl(l, xOf, trackW) {
+    const label = el('div', { class: 'lane-label' },
+      el('span', { class: 'pid' + (l.merged ? ' link' : '') }, l.id || '—'),
+      el('span', { class: 'lt' }, l.title || 'Untitled'),
+      statusBadge(l.status),
+      (!l.merged && l.route === 'journal' && l.derivedFrom) ? el('span', { class: 'tl-linkflag' }, '↳ from ' + l.derivedFrom) : null);
+
+    const track = el('div', { class: 'lane-track', style: `width:${trackW}px` });
+
+    l.segments.forEach(s => {
+      if (!s.point) {
+        const x1 = xOf(s.start), x2 = xOf(s.end);
+        const w = Math.max(2, x2 - x1);
+        const seg = el('div', { class: 'tl-seg' + (s.current ? ' current' : ''), style: `left:${x1}px;width:${w}px` });
+        const days = daysBetween(s.start, s.end);
+        if (w > 34 || s.current) seg.appendChild(el('div', { class: 'dur' }, s.current ? humanDuration(days) + ' · now' : humanDuration(days)));
+        track.appendChild(seg);
+      }
+      // start node
+      track.appendChild(this.nodeEl(s.from, xOf(s.start)));
+    });
+    // final terminal/last node (the "to" of last real segment)
+    const lastReal = [...l.segments].reverse().find(s => s.to && s.to !== s.from && !s.current);
+    if (lastReal) track.appendChild(this.nodeEl(lastReal.to, xOf(lastReal.end)));
+
+    return el('div', { class: 'tl-lane' }, label, track);
+  },
+
+  nodeEl(ev, x) {
+    if (!ev) return document.createComment('');
+    const decision = isDecisionType(ev.type);
+    const terminal = isTerminalType(ev.type);
+    const cls = 'tl-node' + (terminal ? ' terminal' : decision ? ' decision' : '');
+    let tip = eventTypeLabel(ev.type) + ' · ' + fmtDate(ev.date);
+    if (decision && ev.decision) tip += ' (' + ev.decision + ')';
+    if (isVolIssueType(ev.type) && (ev.volume || ev.issue)) tip += ` · Vol ${ev.volume || '?'}, Iss ${ev.issue || '?'}`;
+    if (ev.note) tip += ' — ' + ev.note;
+    return el('div', { class: cls, style: `left:${x}px` }, el('div', { class: 'node-tip' }, tip));
+  },
+
+  axisTicks(min, max) {
+    const span = max - min;
+    const ticks = [];
+    const months = span / (30 * DAY);
+    let step; // in months
+    if (months <= 8) step = 1;
+    else if (months <= 20) step = 3;
+    else if (months <= 48) step = 6;
+    else step = 12;
+    const d = new Date(min.getFullYear(), min.getMonth(), 1);
+    while (d <= max) {
+      if (d >= min) {
+        const label = step >= 12 ? String(d.getFullYear())
+          : d.toLocaleDateString(undefined, { month: 'short', year: '2-digit' });
+        ticks.push({ date: new Date(d), label });
+      }
+      d.setMonth(d.getMonth() + step);
+    }
+    return ticks;
+  },
+};
+
+/* ===== 07-app.js ===== */
+/* ============================================================
+   App shell: routing, nav, bootstrap
+   ============================================================ */
+
+const App = {
+  view: 'table',
+
+  init() {
+    Store.load();
+    TableView.mount();
+    TimelineView.mount();
+
+    $$('#nav .nav-item').forEach(btn => btn.addEventListener('click', () => this.show(btn.dataset.view)));
+    $('#btnNew').addEventListener('click', () => openPaperModal(null));
+    $('#btnNew2').addEventListener('click', () => openPaperModal(null));
+    $('#btnExport').addEventListener('click', exportJSON);
+    $('#btnImport').addEventListener('click', () => $('#importFile').click());
+    $('#importFile').addEventListener('change', e => {
+      const file = e.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = () => importJSONText(reader.result);
+      reader.onerror = () => toast('Could not read that file.', true);
+      reader.readAsText(file);
+      e.target.value = '';
+    });
+
+    document.addEventListener('keydown', e => {
+      if (e.target.matches('input, textarea, select')) return;
+      if (e.key === '1') this.show('table');
+      else if (e.key === '2') this.show('board');
+      else if (e.key === '3') this.show('timeline');
+      else if (e.key.toLowerCase() === 'n') openPaperModal(null);
+    });
+
+    this.renderAll();
+    this.show('table');
+  },
+
+  show(view) {
+    this.view = view;
+    $$('#nav .nav-item').forEach(b => b.classList.toggle('active', b.dataset.view === view));
+    ['table', 'board', 'timeline'].forEach(v => { $('#view-' + v).hidden = v !== view; });
+    if (view === 'table') TableView.render();
+    else if (view === 'board') BoardView.render();
+    else if (view === 'timeline') TimelineView.render();
+  },
+
+  renderAll() {
+    const n = Store.papers.length;
+    $('#railCount').textContent = n + ' paper' + (n === 1 ? '' : 's') + ' tracked';
+    if (this.view === 'table') TableView.render();
+    else if (this.view === 'board') BoardView.render();
+    else if (this.view === 'timeline') TimelineView.render();
+  },
+};
+
+document.addEventListener('DOMContentLoaded', () => App.init());
+
+</script>
+</body>
+</html>

@@ -1,0 +1,70 @@
+<div class="app">
+  <aside class="rail">
+    <div class="brand">
+      <div class="mark">QDVC</div>
+      <div class="name">Research Pipeline</div>
+      <div class="sub">Ideation to publication</div>
+    </div>
+    <nav id="nav">
+      <button class="nav-item active" data-view="table"><span class="k">1</span> Papers</button>
+      <button class="nav-item" data-view="board"><span class="k">2</span> Board</button>
+      <button class="nav-item" data-view="timeline"><span class="k">3</span> Timeline</button>
+    </nav>
+    <div class="rail-foot">
+      <div class="count" id="railCount"></div>
+      <button class="btn btn-sm btn-ghost" id="btnExport" style="color:#c9cdd6">Export JSON</button>
+      <button class="btn btn-sm btn-ghost" id="btnImport" style="color:#c9cdd6">Import JSON</button>
+      <input type="file" id="importFile" accept="application/json,.json" hidden>
+    </div>
+  </aside>
+
+  <main class="main">
+    <!-- TABLE VIEW -->
+    <section class="view" id="view-table">
+      <div class="view-head">
+        <div>
+          <h1>Papers</h1>
+          <p>Every project in your pipeline. Click a row to edit.</p>
+        </div>
+        <div class="actions">
+          <button class="btn btn-primary" id="btnNew">New paper</button>
+        </div>
+      </div>
+      <div class="row-toolbar">
+        <input type="text" class="search" id="tableSearch" placeholder="Search title, ID, coauthors…">
+        <select class="filter-select" id="tableStatusFilter"><option value="">All statuses</option></select>
+        <select class="filter-select" id="tableRouteFilter"><option value="">All routes</option></select>
+      </div>
+      <div id="tableHost"></div>
+    </section>
+
+    <!-- BOARD VIEW -->
+    <section class="view" id="view-board" hidden>
+      <div class="view-head">
+        <div>
+          <h1>Board</h1>
+          <p>Drag a paper between columns to change its work status.</p>
+        </div>
+        <div class="actions">
+          <button class="btn btn-primary" id="btnNew2">New paper</button>
+        </div>
+      </div>
+      <div id="boardHost"></div>
+    </section>
+
+    <!-- TIMELINE VIEW -->
+    <section class="view" id="view-timeline" hidden>
+      <div class="view-head">
+        <div>
+          <h1>Timeline</h1>
+          <p>Publication events across time. Hover a marker for detail; the striped bar is the current step through today.</p>
+        </div>
+      </div>
+      <div class="tl-toolbar" id="tlToolbar"></div>
+      <div id="timelineHost"></div>
+    </section>
+  </main>
+</div>
+
+<div id="modalHost"></div>
+<div class="toast-stack" id="toastStack"></div>
